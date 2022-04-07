@@ -1,29 +1,51 @@
-﻿using SSTService;
-using SSTDataAccess;
-using Microsoft.AspNetCore.Http;
+﻿#region Header
+
+#endregion
+
+#region Using
+
 using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using System.Net.Http;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
+using SSTDataAccess;
+using System.Net.Http;
 using System.Text;
-using Newtonsoft.Json.Linq;
-using System.Collections.ObjectModel;
+using System.Threading.Tasks;
+
+#endregion
 
 namespace CrudCoreDatabaseFirst.Controllers
 {
+    /// <summary>
+    /// Controller class for QnA Self Service Tool
+    /// </summary>
     [ApiController]
     public class SSTController : ControllerBase
     {
-        private readonly IUserService sslService;
-        private readonly IConfiguration configuration;
+        #region Private Fields
 
-        public SSTController(IUserService sslService, IConfiguration configuration)
+        private readonly IConfiguration configuration;
+        private readonly string get = "get";
+        private readonly string post = "post";
+        private readonly string patch = "patch";
+        private readonly string applicationJson = "application/json";
+        private readonly string ocpApimSubscriptionKey = "Ocp-Apim-Subscription-Key";
+
+        #endregion
+
+        #region Constructor
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        public SSTController(IConfiguration configuration)
         {
-            this.sslService = sslService;
             this.configuration = configuration;
         }
+
+        #endregion
+
+        #region Public Methods
 
         /// <summary>
         /// Wrapper method to call GetQnAs API endpoint
@@ -32,25 +54,11 @@ namespace CrudCoreDatabaseFirst.Controllers
         [Route("api/GetQnAs")]
         public async Task<QnARecords> GetQnAs()
         {
-            //UserRole userRole = sslService.GetUserRoleMapping(1);
-
-            ////Assuming RoleId 1 has access to view all QnAs
-            //if (userRole.RoleId == 1)
-            //{
-            //    //To do - Call to API Endpoint here
-            //    return new QnARecords();
-            //}
-            //else
-            //{
-            //    return Unauthorized();
-
-            //}
-
             QnARecords allQnAs = new QnARecords();
 
             var url = $"{configuration["QKBEndpoint"]}/language/query-knowledgebases/projects/SCAL/qnas?api-version=2021-10-01";
 
-            var JsonResponse = await CallApiEndpoint(url, "get", string.Empty);
+            var JsonResponse = await CallApiEndpoint(url, get, string.Empty);
 
             allQnAs = JsonConvert.DeserializeObject<QnARecords>(JsonResponse);
 
@@ -71,7 +79,7 @@ namespace CrudCoreDatabaseFirst.Controllers
 
             var url = $"{configuration["QKBEndpoint"]}/language/:query-knowledgebases?projectName=SCAL&api-version=2021-10-01&deploymentName=test";
 
-            var JsonResponse = await CallApiEndpoint(url, "post", content);
+            var JsonResponse = await CallApiEndpoint(url, post, content);
 
             qnARecord = JsonConvert.DeserializeObject<QnARecords>(JsonResponse);
 
@@ -100,7 +108,7 @@ namespace CrudCoreDatabaseFirst.Controllers
 
             var url = $"{configuration["QKBEndpoint"]}/language/query-knowledgebases/projects/SCAL/qnas?api-version=2021-10-01";
 
-            var JsonResponse = await CallApiEndpoint(url, "patch", content);
+            var JsonResponse = await CallApiEndpoint(url, patch, content);
 
             return JsonResponse;
         }
@@ -116,7 +124,7 @@ namespace CrudCoreDatabaseFirst.Controllers
 
             var url = $"{configuration["QKBEndpoint"]}/language/query-knowledgebases/projects?api-version=2021-10-01";
 
-            var JsonResponse = await CallApiEndpoint(url, "get", string.Empty);
+            var JsonResponse = await CallApiEndpoint(url, get, string.Empty);
 
             allProjects = JsonConvert.DeserializeObject<ProjectRecords>(JsonResponse);
 
@@ -144,7 +152,7 @@ namespace CrudCoreDatabaseFirst.Controllers
             var content = JsonConvert.SerializeObject(newSources);
 
             var url = $"{configuration["QKBEndpoint"]}/language/query-knowledgebases/projects/test2/sources?api-version=2021-10-01";
-            var JsonResponse = await CallApiEndpoint(url, "patch", content);
+            var JsonResponse = await CallApiEndpoint(url, patch, content);
 
             return JsonResponse;
         }
@@ -160,12 +168,16 @@ namespace CrudCoreDatabaseFirst.Controllers
 
             var url = $"{configuration["QKBEndpoint"]}/language/query-knowledgebases/projects/test2/sources?api-version=2021-10-01";
 
-            var JsonResponse = await CallApiEndpoint(url, "get", string.Empty);
+            var JsonResponse = await CallApiEndpoint(url, get, string.Empty);
 
             allSources = JsonConvert.DeserializeObject<SourceRecords>(JsonResponse);
 
             return allSources;
         }
+
+        #endregion
+
+        #region Private Methods
 
         /// <summary>
         /// Common method to call API endpoint
@@ -174,22 +186,24 @@ namespace CrudCoreDatabaseFirst.Controllers
         {
             var Client = new HttpClient();
             // add QnAAuthKey to Authorization header
-            Client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", configuration["QKBApikey"]);
-            if (operationType == "get")
+            Client.DefaultRequestHeaders.Add(ocpApimSubscriptionKey, configuration["QKBApikey"]);
+            if (operationType == get)
             {
                 return await Client.GetAsync(url).Result.Content.ReadAsStringAsync();
             }
-            else if (operationType == "patch")
+            else if (operationType == patch)
             {
-                return await Client.PatchAsync(url, new StringContent(content, Encoding.UTF8, "application/json")).Result.Content.ReadAsStringAsync();
+                return await Client.PatchAsync(url, new StringContent(content, Encoding.UTF8, applicationJson)).Result.Content.ReadAsStringAsync();
             }
-            else if (operationType == "post")
+            else if (operationType == post)
             {
-                return await Client.PostAsync(url, new StringContent(content, Encoding.UTF8, "application/json")).Result.Content.ReadAsStringAsync();
+                return await Client.PostAsync(url, new StringContent(content, Encoding.UTF8, applicationJson)).Result.Content.ReadAsStringAsync();
             }
             else {
                 return string.Empty;
             }
         }
+
+        #endregion
     }
 }
