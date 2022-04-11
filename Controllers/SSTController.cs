@@ -183,28 +183,6 @@ namespace CrudCoreDatabaseFirst.Controllers
             }
         }
 
-        private void AddMetadata(QnA qnA)
-        {
-            Metadata metadata = new Metadata();
-            metadata.region = "scal";
-            qnA.Metadata = metadata;
-        }
-
-        private void AddFollowupPrompt(QnA qnA)
-        {
-            QnADialog qnaDialog  = new QnADialog();
-            qnaDialog.IsContextOnly = false;
-            QnAPrompt[] prompts = new QnAPrompt[1];
-            QnAPrompt prompt = new QnAPrompt();
-            prompt.DisplayOrder = 1;
-            prompt.DisplayText = "Prompt 1";
-            prompt.QnAId = 1;
-            prompts[0] = prompt;
-            qnaDialog.QnAPrompt = prompts;
-            qnA.QnADialog = qnaDialog;
-        }
-        
-
         #endregion
     }
 }
