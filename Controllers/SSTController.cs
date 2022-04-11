@@ -8,8 +8,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using SSTDataAccess;
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 #endregion
@@ -70,11 +72,9 @@ namespace CrudCoreDatabaseFirst.Controllers
         /// </summary>
         [HttpPost]
         [Route("api/QueryKB")]
-        public async Task<QnARecords> QueryKB()
+        public async Task<QnARecords> QueryKB(SuggestedQuestions question)
         {
             QnARecords qnARecord = new QnARecords();
-            SuggestedQuestions question = new SuggestedQuestions();
-            question.Question = "location";
             var content = JsonConvert.SerializeObject(question);
 
             var url = $"{configuration["QKBEndpoint"]}/language/:query-knowledgebases?projectName=SCAL&api-version=2021-10-01&deploymentName=test";
@@ -91,20 +91,9 @@ namespace CrudCoreDatabaseFirst.Controllers
         /// </summary>
         [HttpPatch]
         [Route("api/UpdateQnAs")]
-        public async Task<string> UpdateQnAs()
+        public async Task<string> UpdateQnAs(QnARecord[] qnARecords)
         {
-            QnARecord[] qnARecords = new QnARecord[1];
-            QnARecord qnARecord = new QnARecord();
-            qnARecord.Operation = OperationKind.Add;
-            QnA qnA = new QnA();
-            qnA.QnAId = 0;
-            qnA.Answer = "FirstUpdateQnAs";
-            qnA.SourceName = "Editorial";
-            qnA.Question = new string[] { "FirstUpdateQnAs", "FirstUpdateQnAs" };
-            qnARecord.QnA = qnA;
-            qnARecords[0] = qnARecord;
-
-            var content = JsonConvert.SerializeObject(qnARecords);
+            var content = JsonConvert.SerializeObject(qnARecords, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
 
             var url = $"{configuration["QKBEndpoint"]}/language/query-knowledgebases/projects/SCAL/qnas?api-version=2021-10-01";
 
@@ -136,20 +125,9 @@ namespace CrudCoreDatabaseFirst.Controllers
         /// </summary>
         [HttpPatch]
         [Route("api/UpdateSourcesFileUpload")]
-        public async Task<string> UpdateSourcesFileUpload()
+        public async Task<string> UpdateSourcesFileUpload(SourceRecord[] newSources)
         {
-            SourceRecord[] newSources = new SourceRecord[1];
-            SourceRecord newSource = new SourceRecord();
-            newSource.Operation = OperationKind.Add;
-            Source source = new Source();
-            source.SourceName = "SCALqnas.xlsx";
-            source.DisplayName = "FirstSSTSource";
-            source.SourceUri = "https://testpdconnect.blob.core.windows.net/users/SCALqnas.xlsx";
-            source.SourceKind = SourceKind.File;
-            newSource.Source = source;
-            newSources[0] = newSource;
-
-            var content = JsonConvert.SerializeObject(newSources);
+            var content = JsonConvert.SerializeObject(newSources, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
 
             var url = $"{configuration["QKBEndpoint"]}/language/query-knowledgebases/projects/test2/sources?api-version=2021-10-01";
             var JsonResponse = await CallApiEndpoint(url, patch, content);
@@ -199,10 +177,33 @@ namespace CrudCoreDatabaseFirst.Controllers
             {
                 return await Client.PostAsync(url, new StringContent(content, Encoding.UTF8, applicationJson)).Result.Content.ReadAsStringAsync();
             }
-            else {
+            else
+            {
                 return string.Empty;
             }
         }
+
+        private void AddMetadata(QnA qnA)
+        {
+            Metadata metadata = new Metadata();
+            metadata.region = "scal";
+            qnA.Metadata = metadata;
+        }
+
+        private void AddFollowupPrompt(QnA qnA)
+        {
+            QnADialog qnaDialog  = new QnADialog();
+            qnaDialog.IsContextOnly = false;
+            QnAPrompt[] prompts = new QnAPrompt[1];
+            QnAPrompt prompt = new QnAPrompt();
+            prompt.DisplayOrder = 1;
+            prompt.DisplayText = "Prompt 1";
+            prompt.QnAId = 1;
+            prompts[0] = prompt;
+            qnaDialog.QnAPrompt = prompts;
+            qnA.QnADialog = qnaDialog;
+        }
+        
 
         #endregion
     }
